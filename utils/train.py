@@ -72,12 +72,16 @@ def train(args, pt_dir, chkpt_path, trainloader, valloader, writer, logger, hp, 
         model_d.train()
 
         epochs = hp.train.epochs - elapsed_epochs
-        for epoch in range(epochs):
+        for epoch in range(epochs + 1):
             if epoch % hp.log.validation_interval == 0:
                 with torch.no_grad():
                     validate(hp, args, model_g, model_d, valloader, writer, step)
 
             epoch += elapsed_epochs
+
+            adjust_learning_rate(optim_g, epoch, hp)
+            adjust_learning_rate(optim_d, epoch, hp)
+
             trainloader.dataset.shuffle_mapping()
             loader = tqdm.tqdm(trainloader, desc='Loading train data')
             for (melG, audioG), (melD, audioD) in loader:
@@ -85,9 +89,6 @@ def train(args, pt_dir, chkpt_path, trainloader, valloader, writer, logger, hp, 
                 audioG = audioG.cuda()
                 melD = melD.cuda()
                 audioD = audioD.cuda()
-
-                adjust_learning_rate(optim_g, epoch, hp)
-                adjust_learning_rate(optim_d, epoch, hp)
 
                 # generator
                 optim_g.zero_grad()
