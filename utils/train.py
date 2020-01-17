@@ -33,9 +33,9 @@ def train(args, pt_dir, chkpt_path, trainloader, valloader, writer, logger, hp, 
     model_g = Generator(hp.audio.n_mel_channels).cuda()
     model_d = MultiScaleDiscriminator().cuda()
 
-    optim_g = torch.optim.Adam(model_g.parameters(),
+    optim_g = torch.optim.AdamW(model_g.parameters(),
         lr=hp.train.adam.init_lr, betas=(hp.train.adam.beta1, hp.train.adam.beta2))
-    optim_d = torch.optim.Adam(model_d.parameters(),
+    optim_d = torch.optim.AdamW(model_d.parameters(),
         lr=hp.train.adam.init_lr, betas=(hp.train.adam.beta1, hp.train.adam.beta2))
 
     githash = get_commit_hash()
@@ -47,11 +47,13 @@ def train(args, pt_dir, chkpt_path, trainloader, valloader, writer, logger, hp, 
         logger.info("Resuming from checkpoint: %s" % chkpt_path)
         checkpoint = torch.load(chkpt_path)
         model_g.load_state_dict(checkpoint['model_g'])
-        model_d.load_state_dict(checkpoint['model_d'])
-        optim_g.load_state_dict(checkpoint['optim_g'])
-        optim_d.load_state_dict(checkpoint['optim_d'])
-        step = checkpoint['step']
-        elapsed_epochs = checkpoint['epoch']
+        # published checkpoint have no discriminator
+        if checkpoint['model_d'] is not None:
+            model_d.load_state_dict(checkpoint['model_d'])
+            optim_g.load_state_dict(checkpoint['optim_g'])
+            optim_d.load_state_dict(checkpoint['optim_d'])
+            step = checkpoint['step']
+            elapsed_epochs = checkpoint['epoch']
 
         if hp_str != checkpoint['hp_str']:
             logger.warning("New hparams is different from checkpoint. Will use new.")
