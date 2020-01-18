@@ -5,6 +5,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import traceback
+from minio import Minio
 
 from model.generator import Generator
 from model.multiscale import MultiScaleDiscriminator
@@ -32,6 +33,11 @@ def adjust_learning_rate(optimizer, epoch, hp):
 def train(args, pt_dir, chkpt_path, trainloader, valloader, writer, logger, hp, hp_str):
     model_g = Generator(hp.audio.n_mel_channels).cuda()
     model_d = MultiScaleDiscriminator().cuda()
+    
+    s3 = Minio('s3.amazonaws.com',
+                   access_key=os.environ['s3_login'],
+                   secret_key=os.environ['s3_pass'],
+                   secure=True)
 
     optim_g = torch.optim.AdamW(model_g.parameters(),
         lr=hp.train.adam.init_lr, betas=(hp.train.adam.beta1, hp.train.adam.beta2))
@@ -149,6 +155,7 @@ def train(args, pt_dir, chkpt_path, trainloader, valloader, writer, logger, hp, 
                     'hp_str': hp_str,
                     'githash': githash,
                 }, save_path)
+                s3.fput_object('amai-models', 'vocoder/melgan_en_5.pt', save_path)
                 logger.info("Saved checkpoint to: %s" % save_path)
 
     except Exception as e:
