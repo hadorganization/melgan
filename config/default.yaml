@@ -1,6 +1,6 @@
 data: # root path of train/validation data (either relative/absoulte path is ok)
-  train: ''
-  validation: ''
+  train: 'train'
+  validation: 'val'
 ---
 train:
   rep_discriminator: 1
@@ -30,7 +30,7 @@ model:
 ---
 log:
   summary_interval: 1
-  validation_interval: 5
+  validation_interval: 50
   save_interval: 25
   chkpt_dir: 'chkpt'
   log_dir: 'logs'
