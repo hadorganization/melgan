@@ -29,6 +29,20 @@ def adjust_learning_rate(optimizer, epoch, hp):
     for param_group in optimizer.param_groups:
         param_group['lr'] = lr
 
+def save_model(args, githash, epoch, model_g, model_d, optim_g, optim_d, step, hp_str, s3):
+    save_path = os.path.join(pt_dir, '%s_%s_%04d.pt' % (args.name, githash, epoch))
+    torch.save({
+        'model_g': model_g.state_dict(),
+        'model_d': model_d.state_dict(),
+        'optim_g': optim_g.state_dict(),
+        'optim_d': optim_d.state_dict(),
+        'step': step,
+        'epoch': epoch,
+        'hp_str': hp_str,
+        'githash': githash,
+    }, save_path)
+    s3.fput_object('amai-models', 'vocoder/melgan_en_5.pt', save_path)
+        
 
 def train(args, pt_dir, chkpt_path, trainloader, valloader, writer, logger, hp, hp_str):
     model_g = Generator(hp.audio.n_mel_channels).cuda()
@@ -143,20 +157,10 @@ def train(args, pt_dir, chkpt_path, trainloader, valloader, writer, logger, hp, 
                     loader.set_description("g %.04f d %.04f | step %d" % (loss_g, loss_d_avg, step))
 
             if epoch % hp.log.save_interval == 0:
-                save_path = os.path.join(pt_dir, '%s_%s_%04d.pt'
-                    % (args.name, githash, epoch))
-                torch.save({
-                    'model_g': model_g.state_dict(),
-                    'model_d': model_d.state_dict(),
-                    'optim_g': optim_g.state_dict(),
-                    'optim_d': optim_d.state_dict(),
-                    'step': step,
-                    'epoch': epoch,
-                    'hp_str': hp_str,
-                    'githash': githash,
-                }, save_path)
-                s3.fput_object('amai-models', 'vocoder/melgan_en_5.pt', save_path)
-                logger.info("Saved checkpoint to: %s" % save_path)
+                save_model(args, githash, epoch, model_g, model_d, optim_g, optim_d, step, hp_str, s3)
+
+    except KeyboardInterrupt:
+        save_model(args, githash, epoch, model_g, model_d, optim_g, optim_d, step, hp_str, s3)
 
     except Exception as e:
         logger.info("Exiting due to exception: %s" % e)
