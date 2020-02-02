@@ -53,9 +53,9 @@ def train(args, pt_dir, chkpt_path, trainloader, valloader, writer, logger, hp, 
                    secret_key=os.environ['s3_pass'],
                    secure=True)
 
-    optim_g = torch.optim.AdamW(model_g.parameters(),
+    optim_g = torch.optim.Adam(model_g.parameters(),
         lr=hp.train.adam.init_lr, betas=(hp.train.adam.beta1, hp.train.adam.beta2))
-    optim_d = torch.optim.AdamW(model_d.parameters(),
+    optim_d = torch.optim.Adam(model_d.parameters(),
         lr=hp.train.adam.init_lr, betas=(hp.train.adam.beta1, hp.train.adam.beta2))
 
     githash = get_commit_hash()
